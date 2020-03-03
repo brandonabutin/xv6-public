@@ -6,9 +6,12 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
+struct spinlock lock;
+char pgcnt[PHYSTOP >> PGSHIFT];
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -189,6 +192,9 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   mem = kalloc();
   memset(mem, 0, PGSIZE);
   mappages(pgdir, 0, PGSIZE, V2P(mem), PTE_W|PTE_U);
+  acquire(&lock);
+  pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
+  release(&lock);
   memmove(mem, init, sz);
 }
 
@@ -244,6 +250,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(mem);
       return 0;
     }
+    acquire(&lock);
+    pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
+    release(&lock);
   }
   return newsz;
 }
@@ -270,8 +279,12 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
-      char *v = P2V(pa);
-      kfree(v);
+      acquire(&lock);
+      if(--pgcnt[pa >> PGSHIFT] == 0) {
+        char *v = P2V(pa);
+        kfree(v);
+      }
+      release(&lock);
       *pte = 0;
     }
   }
@@ -318,7 +331,7 @@ copyuvm(pde_t *pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
+  //char *mem;
 
   if((d = setupkvm()) == 0)
     return 0;
@@ -327,20 +340,27 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
+    *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
-      kfree(mem);
+    //if((mem = kalloc()) == 0)
+    //  goto bad;
+    //memmove(mem, (char*)P2V(pa), PGSIZE);
+    //if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
+      //kfree(mem);
       goto bad;
     }
+    acquire(&lock);
+    pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
+    release(&lock);
   }
+  lcr3(V2P(pgdir));
   return d;
 
 bad:
   freevm(d);
+  lcr3(v2p(pgdir));
   return 0;
 }
 
@@ -383,6 +403,65 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
+}
+
+void pagefault(uint ecode)
+{
+  char *mem;
+  pte_t *pte;
+  uint pa;
+  uint va = rcr2();
+  struct proc *proc = myproc();
+
+  if(va >= KERNBASE) {
+    cprintf("Illegal memory access, virtual address mapped to kernal space. Killing process: pid %d %s\n", proc->pid, proc->name);
+    proc->killed = 1;
+    return;
+  }
+  if((pte = walkpgdir(proc->pgdir, (void*)va, 0)) == 0) {
+    cprintf("Illegal memory access, virtual address mapped to NULL PTE. Killing process: pid %d %s\n", proc->pid, proc->name);
+    proc->killed = 1;
+    return;
+  }
+  if(!(*pte & PTE_U)) {
+    cprintf("Illegal memory access, virtual address mapped to inaccessible PTE. Killing process: pid %d %s\n", proc->pid, proc->name);
+    proc->killed = 1;
+    return;
+  }
+  if(!(*pte & PTE_P)) {
+    cprintf("Illegal memory access, virtual address mapped to PTE which is not present. Killing process: pid %d %s\n", proc->pid, proc->name);
+    proc->killed = 1;
+    return;
+  }
+  if(*pte & PTE_W) {
+    panic("Page fault due to writable PTE");
+  } else {
+    pa = PTE_ADDR(*pte);
+    acquire(&lock);
+    if(pgcnt[pa >> PGSHIFT] == 1) {
+      release(&lock);
+      *pte |= PTE_W;
+    } else {
+      if(pgcnt[pa >> PGSHIFT] > 1) {
+        release(&lock);
+        if((mem = kalloc()) == 0) {
+          cprintf("Page fault due to out of memory. Killing process: pid %d %s\n", proc->pid, proc->name);
+          proc->killed = 1;
+          return;
+        }
+        memmove(mem, (char*)P2V(pa), PGSIZE);
+        acquire(&lock);
+        pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] - 1;
+        pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
+        release(&lock);
+        *pte = V2P(mem) | PTE_P | PTE_W | PTE_U;
+      } else {
+        release(&lock);
+        panic("Page fault due to wrong reference count");
+      }
+    }
+    lcr3(V2P(proc->pgdir));
+  }
 }
 
 //PAGEBREAK!
