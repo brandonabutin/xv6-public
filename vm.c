@@ -360,7 +360,7 @@ copyuvm(pde_t *pgdir, uint sz)
 
 bad:
   freevm(d);
-  lcr3(v2p(pgdir));
+  lcr3(V2P(pgdir));
   return 0;
 }
 
