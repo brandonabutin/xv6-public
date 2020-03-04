@@ -9,6 +9,7 @@ int main(void) {
   if(pid == 0) {
     printf(1, "Number of free pages in child: %d\n", getNumberOfFreePages());
     val = 1;
+    printf(1, "number of free pages in child after changing: %d\n", getNumberOfFreePages());
     if(val == 1)
       printf(1, "Number of free pages in child after changing variable: %d\n", getNumberOfFreePages());
   } else {
