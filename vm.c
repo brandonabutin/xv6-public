@@ -414,7 +414,7 @@ void pagefault(uint ecode)
   struct proc *proc = myproc();
 
   if(va >= KERNBASE) {
-    cprintf("Illegal memory access, virtual address mapped to kernal space. Killing process: pid %d %s\n", proc->pid, proc->name);
+    cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
     return;
   }
@@ -423,13 +423,13 @@ void pagefault(uint ecode)
     proc->killed = 1;
     return;
   }
-  if(!(*pte & PTE_U)) {
-    cprintf("Illegal memory access, virtual address mapped to inaccessible PTE. Killing process: pid %d %s\n", proc->pid, proc->name);
+  if(!(*pte & PTE_P)) {
+    cprintf("Illegal memory access, virtual address mapped to PTE which is not present. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
     return;
   }
-  if(!(*pte & PTE_P)) {
-    cprintf("Illegal memory access, virtual address mapped to PTE which is not present. Killing process: pid %d %s\n", proc->pid, proc->name);
+  if(!(*pte & PTE_U)) {
+    cprintf("Illegal memory access, virtual address mapped to inaccessible PTE. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
     return;
   }
