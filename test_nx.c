@@ -1,4 +1,8 @@
-int main(int argc, char *argv[])
+#include "types.h"
+#include "user.h"
+#include "stat.h"
+
+int main(int argc, char *argv[]) {
   char buffer[5];
   strcpy(buffer, argv[1]);
   printf("buffer content= %s\n", buffer);
