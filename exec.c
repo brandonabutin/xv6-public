@@ -85,7 +85,7 @@ exec(char *path, char **argv)
   end_op();
   ip = 0;
 
-  sz = PGROUNDUP(sz) + ((randomrange(0, (KERNBASE-sz)/PGSIZE-3*PGSIZE) * PGSIZE);
+  sz = PGROUNDUP(sz) + (randomrange(0, (KERNBASE-sz)/PGSIZE-3*PGSIZE) * PGSIZE);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
