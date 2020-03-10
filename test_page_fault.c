@@ -4,6 +4,6 @@
 
 int main(void) {
   int i = 0;
-  printf(1, "%d\n", *(&x + 4097));
+  printf(1, "%d\n", *(&i + 4097));
   exit();
 }
