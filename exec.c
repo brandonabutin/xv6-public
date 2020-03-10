@@ -75,7 +75,6 @@ exec(char *path, char **argv)
   end_op();
   ip = 0;
 
-  srand(time(0));
   sz = PGROUNDUP(sz) + ((random() % (65536 + 1)) * PGSIZE);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
