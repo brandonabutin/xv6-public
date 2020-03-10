@@ -340,9 +340,10 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    *pte &= ~PTE_W;
+    if(*pte & PTE_W)
+      *pte = (*pte & ~PTE_W) | PTE_COW;
     pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
+    flags = (PTE_FLAGS(*pte) & ~PTE_W) | PTE_COW;
     //if((mem = kalloc()) == 0)
     //  goto bad;
     //memmove(mem, (char*)P2V(pa), PGSIZE);
@@ -355,12 +356,10 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
-  lcr3(V2P(pgdir));
   return d;
 
 bad:
   freevm(d);
-  lcr3(V2P(pgdir));
   return 0;
 }
 
@@ -409,10 +408,12 @@ void pagefault(uint ecode)
 {
   char *mem;
   pte_t *pte;
+  pte_t *pde;
   uint pa;
-  uint va = rcr2();
+  char* va = PGROUNDDOWN(rcr2());
   struct proc *proc = myproc();
 
+  /*
   if(va >= KERNBASE) {
     cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
@@ -433,34 +434,38 @@ void pagefault(uint ecode)
     proc->killed = 1;
     return;
   }
-  if(*pte & PTE_W) {
-    panic("Page fault due to writable PTE");
-  } else {
-    pa = PTE_ADDR(*pte);
-    acquire(&lock);
-    if(pgcnt[pa >> PGSHIFT] == 1) {
-      release(&lock);
-      *pte |= PTE_W;
-    } else {
-      if(pgcnt[pa >> PGSHIFT] > 1) {
-        release(&lock);
-        if((mem = kalloc()) == 0) {
-          cprintf("Page fault due to out of memory. Killing process: pid %d %s\n", proc->pid, proc->name);
-          proc->killed = 1;
-          return;
-        }
-        memmove(mem, (char*)P2V(pa), PGSIZE);
-        acquire(&lock);
-        pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] - 1;
-        pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
-        release(&lock);
-        *pte = V2P(mem) | PTE_P | PTE_W | PTE_U;
-      } else {
-        release(&lock);
-        panic("Page fault due to wrong reference count");
-      }
+  */
+  pde = &(proc->pgdir[PDX(va)]);
+  if(*pde & PTE_P) {
+    pte_t *pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+    pte = &(pgtab[PTX(va)]);
+    if(!(*pte & PTE_P)) {
+      panic("Page fault: page not present");
     }
-    lcr3(V2P(proc->pgdir));
+    pa = PTE_ADDR(*pte);
+  } else {
+    panic("Page fault: pgtab does not exist");
+  }
+  if(*pte & PTE_COW) {
+    if(pgcnt[pa >> PGSHIFT] == 1) {
+      *pte = (*pte & ~PTE_COW) | PTE_W;
+    } else {
+      uint flags = PTE_FLAGS(*pte) | PTE_P | PTE_W;
+      if((mem = kalloc()) == 0) {
+        cprintf("Page fault due to out of memory. Killing process: pid %d %s\n", proc->pid, proc->name);
+        proc->killed = 1;
+        return;
+      }
+      memmove(mem, (char*)P2V(pa), PGSIZE);
+      acquire(&lock);
+      pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] - 1;
+      pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
+      release(&lock);
+      *pte = V2P(mem) | flags;
+    }
+  } else {
+    cprintf("Page fault: inaccessible pte. Killing process: pid %d %s\n", proc->pid, proc->name);
+    proc->killed = 1;
   }
 }
 
