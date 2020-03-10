@@ -410,7 +410,7 @@ void pagefault(uint ecode)
   pte_t *pte;
   pte_t *pde;
   uint pa;
-  char* va = PGROUNDDOWN(rcr2());
+  char* va = (char*)PGROUNDDOWN(rcr2());
   struct proc *proc = myproc();
 
   /*
