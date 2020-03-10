@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
+#include "stdlib.h"
 #include "time.h"
 
 int
