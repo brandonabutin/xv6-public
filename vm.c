@@ -412,9 +412,8 @@ void pagefault(uint ecode)
 {
   char *mem;
   pte_t *pte;
-  pte_t *pde;
   uint pa;
-  char* va = (char*)PGROUNDDOWN(rcr2());
+  uint va = PGROUNDDOWN(rcr2());
   struct proc *proc = myproc();
   cprintf("VA: %p\n", (void*)va);
   
@@ -449,7 +448,7 @@ void pagefault(uint ecode)
     } else {
       if(pgcnt[pa >> PGSHIFT] > 1) {
         release(&lock);
-        if((mem = alloc()) == 0) {
+        if((mem = kalloc()) == 0) {
           cprintf("Page fault: out of memory");
           proc->killed = 1;
           return;
