@@ -356,10 +356,12 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
+  lcr3(V2P(pgdir));
   return d;
 
 bad:
   freevm(d);
+  lcr3(V2P(pgdir));
   return 0;
 }
 
@@ -412,7 +414,7 @@ void pagefault(uint ecode)
   uint pa;
   char* va = (char*)PGROUNDDOWN(rcr2());
   struct proc *proc = myproc();
-
+  printf(1, "VA: %s\n", va);
   /*
   if(va >= KERNBASE) {
     cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
@@ -448,7 +450,7 @@ void pagefault(uint ecode)
   }
   if(*pte & PTE_COW) {
     if(pgcnt[pa >> PGSHIFT] == 1) {
-      *pte = (*pte & ~PTE_COW) | PTE_W;
+      *pte = (*pte & ~PTE_COW) | PTE_W | PTE_P;
     } else {
       uint flags = PTE_FLAGS(*pte) | PTE_P | PTE_W;
       if((mem = kalloc()) == 0) {
@@ -461,8 +463,9 @@ void pagefault(uint ecode)
       pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] - 1;
       pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
       release(&lock);
-      *pte = V2P(mem) | flags;
+      *pte = V2P(mem) | flags | PTE_P;
     }
+    lcr3(V2P(proc->pgdir));
   } else {
     cprintf("Page fault: inaccessible pte. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
