@@ -79,6 +79,8 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     pagefault(tf->err);
+    if(myproc()->killed)
+      exit();
     break;
   //PAGEBREAK: 13
   default:
