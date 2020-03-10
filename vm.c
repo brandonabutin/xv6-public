@@ -340,10 +340,12 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    if(*pte & PTE_W)
-      *pte = (*pte & ~PTE_W) | PTE_COW;
+    //if(*pte & PTE_W)
+    //  *pte = (*pte & ~PTE_W) | PTE_COW;
+    *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
-    flags = (PTE_FLAGS(*pte) & ~PTE_W) | PTE_COW;
+    flags = PTE_FLAGS(*pte);
+    //flags = (PTE_FLAGS(*pte) & ~PTE_W) | PTE_COW;
     //if((mem = kalloc()) == 0)
     //  goto bad;
     //memmove(mem, (char*)P2V(pa), PGSIZE);
@@ -414,8 +416,8 @@ void pagefault(uint ecode)
   uint pa;
   char* va = (char*)PGROUNDDOWN(rcr2());
   struct proc *proc = myproc();
-  cprintf("VA: %s\n", va);
-  /*
+  cprintf("VA: %p\n", (void*)va);
+  
   if(va >= KERNBASE) {
     cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
@@ -436,7 +438,36 @@ void pagefault(uint ecode)
     proc->killed = 1;
     return;
   }
-  */
+  if(*pte & PTE_W) {
+    panic("Page fault: writable pte");
+  } else {
+    pa = PTE_ADDR(*pte);
+    acquire(&lock);
+    if(pgcnt[pa >> PGSHIFT] == 1) {
+      release(&lock);
+      *pte |= PTE_W;
+    } else {
+      if(pgcnt[pa >> PGSHIFT] > 1) {
+        release(&lock);
+        if((mem = alloc()) == 0) {
+          cprintf("Page fault: out of memory");
+          proc->killed = 1;
+          return;
+        }
+        memmove(mem, (char*)P2V(pa), PGSIZE);
+        acquire(&lock);
+        pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] - 1;
+        pgcnt[V2P(mem) >> PGSHIFT] = pgcnt[V2P(mem) >> PGSHIFT] + 1;
+        release(&lock);
+        *pte = V2P(mem) | PTE_P | PTE_W | PTE_U;
+      } else {
+        release(&lock);
+        panic("Page fault: reference count error");
+      }
+    }
+  lcr3(V2P(proc->pgdir));
+  }
+  /*
   pde = &(proc->pgdir[PDX(va)]);
   if(*pde & PTE_P) {
     pte_t *pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
@@ -470,6 +501,7 @@ void pagefault(uint ecode)
     cprintf("Page fault: inaccessible pte. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
   }
+  */
 }
 
 //PAGEBREAK!
