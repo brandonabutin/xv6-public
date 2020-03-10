@@ -413,9 +413,8 @@ void pagefault(uint ecode)
   char *mem;
   pte_t *pte;
   uint pa;
-  uint va = PGROUNDDOWN(rcr2());
+  uint va = rcr2();
   struct proc *proc = myproc();
-  cprintf("VA: %p\n", (void*)va);
   
   if(va >= KERNBASE) {
     cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
