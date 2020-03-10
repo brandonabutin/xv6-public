@@ -340,18 +340,25 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    //if(*pte & PTE_W)
-    //  *pte = (*pte & ~PTE_W) | PTE_COW;
     *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    //flags = (PTE_FLAGS(*pte) & ~PTE_W) | PTE_COW;
-    //if((mem = kalloc()) == 0)
-    //  goto bad;
-    //memmove(mem, (char*)P2V(pa), PGSIZE);
-    //if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
     if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
-      //kfree(mem);
+      goto bad;
+    }
+    acquire(&lock);
+    pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
+    release(&lock);
+  }
+  for(i = 0; i < myproc()->stacksize; i += 1){
+    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    *pte &= ~PTE_W;
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if(mappages(d, (void*)(myproc()->stacklocation - (i * PGSIZE)), PGSIZE, pa, flags) < 0) {
       goto bad;
     }
     acquire(&lock);
