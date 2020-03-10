@@ -22,6 +22,16 @@ uint random(void) {
   return (z1 ^ z2 ^ z3 ^ z4) / 2;
 }
 
+int randomrange(int lo, int hi) {
+  if (hi < lo) {
+    int tmp = lo;
+    lo = hi;
+    hi = tmp;
+  }
+  int range = hi - lo + 1;
+  return random() % (range) + lo;
+}
+
 int
 exec(char *path, char **argv)
 {
@@ -75,7 +85,7 @@ exec(char *path, char **argv)
   end_op();
   ip = 0;
 
-  sz = PGROUNDUP(sz) + ((random() % (65536 + 1)) * PGSIZE);
+  sz = PGROUNDUP(sz) + ((randomrange(0, (KERNBASE-sz)/PGSIZE-3*PGSIZE) * PGSIZE);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
