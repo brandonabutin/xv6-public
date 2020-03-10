@@ -12,5 +12,7 @@ int main(void) {
   printf(1, "Location of heap variable: %p\n", (void*)&heap_var);
   printf(1, "Location of global variable: %p\n", (void*)&global_var);
 
+  free(heap_var);
+
   return 0;
 }
