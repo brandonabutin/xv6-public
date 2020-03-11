@@ -352,11 +352,11 @@ copyuvm(pde_t *pgdir, uint sz)
   }
   
   for(i = 0; i < myproc()->stacksize; i += 1){
-    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)+1), 0)) == 0)
+    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) {
       cprintf("In second for loop, stacklocation: %p\n", (void*)myproc()->stacklocation);
-      cprintf("In second for loop, pte: %p\n", (void*)pte);
+      cprintf("In second for loop, pte: %p\n", (void*)P2V(PTE_ADDR(*pte)));
       cprintf("In second for loop, sz: %p\n", (void*)sz);
       panic("copyuvm: page not present");
     }
