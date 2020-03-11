@@ -86,7 +86,7 @@ exec(char *path, char **argv)
   ip = 0;
 
   sp = PGROUNDUP(sz + (randomrange(0, (KERNBASE-sz)/PGSIZE-3*PGSIZE) * PGSIZE));
-  if((sz = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
+  if((sp = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
   curproc->stacksize = 1;
