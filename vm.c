@@ -352,18 +352,20 @@ copyuvm(pde_t *pgdir, uint sz)
   }
   
   for(i = 0; i < myproc()->stacksize; i += 1){
-    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)) == 0)
+    if((pte = walkpgdir(pgdir, (void *)(PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) {
       cprintf("In second for loop, stacklocation: %p\n", (void*)myproc()->stacklocation);
-      cprintf("In second for loop, pte: %p\n", (void*)P2V(PTE_ADDR(*pte)));
+      cprintf("In second for loop, stacklocation rounded: %p\n", (void*)PGROUNDDOWN(myproc()->stacklocation));
+      cprintf("In second for loop, pte va: %p\n", (void*)P2V(PTE_ADDR(*pte)));
+      cprintf("In second for loop, pte val: %p\n", (void*)*pte);
       cprintf("In second for loop, sz: %p\n", (void*)sz);
       panic("copyuvm: page not present");
     }
     *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if(mappages(d, (void*)(myproc()->stacklocation - (i * PGSIZE)+1), PGSIZE, pa, flags) < 0) {
+    if(mappages(d, (void*)((PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), PGSIZE, pa, flags) < 0) {
       goto bad;
     }
     acquire(&lock);
