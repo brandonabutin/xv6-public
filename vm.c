@@ -365,7 +365,7 @@ copyuvm(pde_t *pgdir, uint sz)
     *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if(mappages(d, (void*)((PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), PGSIZE, pa, flags) < 0) {
+    if(mappages(d, (void*)(PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), PGSIZE, pa, flags) < 0) {
       goto bad;
     }
     acquire(&lock);
