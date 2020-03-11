@@ -350,6 +350,7 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
+  /*
   for(i = 0; i < myproc()->stacksize; i += 1){
     if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -365,6 +366,7 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
+  */
   lcr3(V2P(pgdir));
   return d;
 
