@@ -354,6 +354,8 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < myproc()->stacksize; i += 1){
     if((pte = walkpgdir(pgdir, (void *)(PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), 0)) == 0)
       panic("copyuvm: pte should exist");
+    if(*pte == 0)
+      break;
     if(!(*pte & PTE_P)) {
       cprintf("In second for loop, stacklocation: %p\n", (void*)myproc()->stacklocation);
       cprintf("In second for loop, stacklocation rounded: %p\n", (void*)PGROUNDDOWN(myproc()->stacklocation));
