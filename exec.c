@@ -84,14 +84,20 @@ exec(char *path, char **argv)
   iunlockput(ip);
   end_op();
   ip = 0;
-
+  /*
   sp = PGROUNDUP(sz + (randomrange(0, (KERNBASE-sz)/PGSIZE-3*PGSIZE) * PGSIZE));
   if((sp = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
   curproc->stacksize = 1;
   curproc->stacklocation = sp;
-
+  */
+  sp = PGROUNDUP(sz);
+  if((sp = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
+    goto bad;
+  clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
+  curproc->stacksize = 1;
+  curproc->stacklocation = sp;
   /*
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
