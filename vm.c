@@ -350,23 +350,23 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
-  /*
+  
   for(i = 0; i < myproc()->stacksize; i += 1){
-    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)) == 0)
+    if((pte = walkpgdir(pgdir, (void *)(myproc()->stacklocation - (i * PGSIZE)), 0)+1) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
     *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if(mappages(d, (void*)(myproc()->stacklocation - (i * PGSIZE)), PGSIZE, pa, flags) < 0) {
+    if(mappages(d, (void*)(myproc()->stacklocation - (i * PGSIZE))+1, PGSIZE, pa, flags) < 0) {
       goto bad;
     }
     acquire(&lock);
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
-  */
+  
   lcr3(V2P(pgdir));
   return d;
 
