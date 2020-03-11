@@ -356,6 +356,8 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) {
       cprintf("In second for loop, stacklocation: %p\n", (void*)myproc()->stacklocation);
+      cprintf("In second for loop, pte: %p\n", (void*)*pte);
+      cprintf("In second for loop, sz: %p\n", (void*)sz);
       panic("copyuvm: page not present");
     }
     *pte &= ~PTE_W;
