@@ -37,8 +37,8 @@ fetchstr(uint addr, char **pp)
   //if(addr >= curproc->stacklocation)
   //  return -1;
   *pp = (char*)addr;
-  ep = (char*)curproc->stacklocation;
-  for(s = *pp; s < ep; s++){
+  //ep = (char*)curproc->stacklocation;
+  for(s = *pp;; s++){
     if(*s == 0)
       return s - *pp;
   }
@@ -60,7 +60,7 @@ argptr(int n, char **pp, int size)
 {
   int i;
   //struct proc *curproc = myproc();
- 
+
   if(argint(n, &i) < 0)
     return -1;
   //if(size < 0 || (uint)i >= curproc->stacklocation || (uint)i+size > curproc->stacklocation)
