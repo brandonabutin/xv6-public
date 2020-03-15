@@ -31,8 +31,8 @@ fetchint(uint addr, int *ip)
 int
 fetchstr(uint addr, char **pp)
 {
-  char *s, *ep;
-  struct proc *curproc = myproc();
+  char *s;//, *ep;
+  //struct proc *curproc = myproc();
 
   //if(addr >= curproc->stacklocation)
   //  return -1;
