@@ -12,7 +12,7 @@ uint random(void) {
   unsigned int b;
   b  = ((z1 << 6) ^ z1) >> 13;
   z1 = ((z1 & 4294967294U) << 18) ^ b;
-  b  = ((z2 << 2) ^ z2) >> 27; 
+  b  = ((z2 << 2) ^ z2) >> 27;
   z2 = ((z2 & 4294967288U) << 2) ^ b;
   b  = ((z3 << 13) ^ z3) >> 21;
   z3 = ((z3 & 4294967280U) << 7) ^ b;
@@ -92,14 +92,13 @@ exec(char *path, char **argv)
   curproc->stacksize = 1;
   curproc->stacklocation = sp;
   */
-  sz = PGROUNDUP(sz);
-  sp = sz + 2*PGSIZE;
+  sp = PGROUNDUP(sz) + 2*PGSIZE;
   if((sp = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
   curproc->stacksize = 1;
   curproc->stacklocation = sp;
-    
+
   /*
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.

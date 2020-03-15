@@ -45,8 +45,10 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0) {
+      cprintf("Error finding pde in walkpgdir");
       return 0;
+    }
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
@@ -350,12 +352,10 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
-  
+
   for(i = 0; i < myproc()->stacksize; i += 1){
     if((pte = walkpgdir(pgdir, (void *)(PGROUNDDOWN(myproc()->stacklocation) - (i * PGSIZE)), 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(*pte == 0)
-      break;
     if(!(*pte & PTE_P)) {
       cprintf("In second for loop, stacklocation: %p\n", (void*)myproc()->stacklocation);
       cprintf("In second for loop, stacklocation rounded: %p\n", (void*)PGROUNDDOWN(myproc()->stacklocation));
@@ -374,7 +374,6 @@ copyuvm(pde_t *pgdir, uint sz)
     pgcnt[pa >> PGSHIFT] = pgcnt[pa >> PGSHIFT] + 1;
     release(&lock);
   }
-  
   lcr3(V2P(pgdir));
   return d;
 
@@ -432,7 +431,7 @@ void pagefault(uint ecode)
   uint pa;
   uint va = rcr2();
   struct proc *proc = myproc();
-  
+
   if(va >= KERNBASE) {
     cprintf("Illegal memory access, virtual address mapped to kernel space. Killing process: pid %d %s\n", proc->pid, proc->name);
     proc->killed = 1;
@@ -525,4 +524,3 @@ void pagefault(uint ecode)
 // Blank page.
 //PAGEBREAK!
 // Blank page.
-
