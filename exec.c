@@ -92,7 +92,8 @@ exec(char *path, char **argv)
   curproc->stacksize = 1;
   curproc->stacklocation = sp;
   */
-  sp = PGROUNDUP(sz) + 2*PGSIZE;
+  sz = PGROUNDUP(sz);
+  sp = sz + 2*PGSIZE;
   if((sp = allocuvm(pgdir, sp, sp + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
