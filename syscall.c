@@ -31,14 +31,14 @@ fetchint(uint addr, int *ip)
 int
 fetchstr(uint addr, char **pp)
 {
-  char *s;//, *ep;
-  //struct proc *curproc = myproc();
+  char *s, *ep;
+  struct proc *curproc = myproc();
 
   //if(addr >= curproc->stacklocation)
   //  return -1;
   *pp = (char*)addr;
-  //ep = (char*)curproc->stacklocation;
-  for(s = *pp;; s++){
+  ep = (char*)curproc->sz;
+  for(s = *pp; s < ep; s++){
     if(*s == 0)
       return s - *pp;
   }
